@@ -11,6 +11,23 @@
         <div class="game-header">
             <div class="score">得分: <span id="score">0</span></div>
             <div class="lives">生命值: <span id="lives">3</span></div>
+            <div class="item-slots">
+                <div class="item-slot item-slot-health" id="slotHealth">
+                    <span class="slot-icon">♥</span>
+                    <span class="slot-label">生命恢复</span>
+                    <span class="slot-status" id="slotHealthStatus"></span>
+                </div>
+                <div class="item-slot item-slot-firepower" id="slotFirepower">
+                    <span class="slot-icon">⚡</span>
+                    <span class="slot-label">火力增强</span>
+                    <span class="slot-status" id="slotFirepowerStatus"></span>
+                </div>
+                <div class="item-slot item-slot-shield" id="slotShield">
+                    <span class="slot-icon">🛡</span>
+                    <span class="slot-label">护盾</span>
+                    <span class="slot-status" id="slotShieldStatus"></span>
+                </div>
+            </div>
         </div>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         <div class="game-controls">
