@@ -90,3 +90,98 @@ button:disabled {
     color: #4CAF50;
     font-weight: bold;
 }
+
+.effects-info {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.effect-badge {
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.effect-badge.firepower {
+    background-color: #FF9800;
+    color: #000;
+}
+
+.effect-badge.shield {
+    background-color: #2196F3;
+    color: #fff;
+}
+
+.item-slots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.item-slot {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: bold;
+    border: 2px solid transparent;
+    opacity: 0.4;
+    transition: opacity 0.2s, border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.item-slot.active {
+    opacity: 1;
+}
+
+.slot-icon {
+    font-size: 15px;
+}
+
+.slot-label {
+    font-size: 11px;
+}
+
+.slot-status {
+    font-size: 11px;
+    min-width: 20px;
+}
+
+.item-slot-health {
+    background-color: rgba(233, 30, 99, 0.1);
+    color: #F06292;
+}
+
+.item-slot-health.active {
+    border-color: #E91E63;
+    border-width: 2px;
+    background-color: rgba(233, 30, 99, 0.4);
+    box-shadow: 0 0 8px rgba(233, 30, 99, 0.5);
+}
+
+.item-slot-firepower {
+    background-color: rgba(255, 152, 0, 0.1);
+    color: #FFB74D;
+}
+
+.item-slot-firepower.active {
+    border-color: #FF9800;
+    border-width: 3px;
+    background-color: rgba(255, 152, 0, 0.45);
+    box-shadow: 0 0 10px rgba(255, 152, 0, 0.6);
+}
+
+.item-slot-shield {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: #64B5F6;
+}
+
+.item-slot-shield.active {
+    border-color: #2196F3;
+    border-width: 3px;
+    background-color: rgba(33, 150, 243, 0.4);
+    box-shadow: 0 0 10px rgba(33, 150, 243, 0.6);
+}
