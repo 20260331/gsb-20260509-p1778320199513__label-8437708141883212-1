@@ -12,7 +12,13 @@ const gameConfig = {
     bulletHeight: 15,
     enemyWidth: 40,
     enemyHeight: 30,
-    initialLives: 3
+    initialLives: 3,
+    powerupWidth: 30,
+    powerupHeight: 30,
+    powerupSpeed: 2,
+    powerupSpawnInterval: 5000,
+    powerupDuration: 8000,
+    powerupTypes: ['health', 'firepower', 'shield']
 };
 
 // 游戏状态
@@ -21,7 +27,12 @@ let gameState = {
     isPaused: false,
     score: 0,
     lives: gameConfig.initialLives,
-    lastEnemySpawn: 0
+    lastEnemySpawn: 0,
+    lastPowerupSpawn: 0,
+    hasShield: false,
+    hasFirepower: false,
+    shieldEndTime: 0,
+    firepowerEndTime: 0
 };
 
 // 游戏对象
@@ -35,6 +46,7 @@ let player = {
 
 let bullets = [];
 let enemies = [];
+let powerups = [];
 let keys = {};
 
 // 获取DOM元素
@@ -92,10 +104,16 @@ function restartGame() {
     gameState.score = 0;
     gameState.lives = gameConfig.initialLives;
     gameState.lastEnemySpawn = 0;
+    gameState.lastPowerupSpawn = 0;
+    gameState.hasShield = false;
+    gameState.hasFirepower = false;
+    gameState.shieldEndTime = 0;
+    gameState.firepowerEndTime = 0;
     
     // 清空游戏对象
     bullets = [];
     enemies = [];
+    powerups = [];
     
     // 重置玩家位置
     player.x = gameConfig.canvasWidth / 2 - gameConfig.playerWidth / 2;
@@ -114,13 +132,37 @@ function restartGame() {
 }
 
 function shoot() {
-    bullets.push({
-        x: player.x + player.width / 2 - gameConfig.bulletWidth / 2,
-        y: player.y,
-        width: gameConfig.bulletWidth,
-        height: gameConfig.bulletHeight,
-        speed: gameConfig.bulletSpeed
-    });
+    if (gameState.hasFirepower) {
+        bullets.push({
+            x: player.x + player.width / 2 - gameConfig.bulletWidth / 2 - 15,
+            y: player.y,
+            width: gameConfig.bulletWidth,
+            height: gameConfig.bulletHeight,
+            speed: gameConfig.bulletSpeed
+        });
+        bullets.push({
+            x: player.x + player.width / 2 - gameConfig.bulletWidth / 2,
+            y: player.y,
+            width: gameConfig.bulletWidth,
+            height: gameConfig.bulletHeight,
+            speed: gameConfig.bulletSpeed
+        });
+        bullets.push({
+            x: player.x + player.width / 2 - gameConfig.bulletWidth / 2 + 15,
+            y: player.y,
+            width: gameConfig.bulletWidth,
+            height: gameConfig.bulletHeight,
+            speed: gameConfig.bulletSpeed
+        });
+    } else {
+        bullets.push({
+            x: player.x + player.width / 2 - gameConfig.bulletWidth / 2,
+            y: player.y,
+            width: gameConfig.bulletWidth,
+            height: gameConfig.bulletHeight,
+            speed: gameConfig.bulletSpeed
+        });
+    }
 }
 
 function spawnEnemy() {
@@ -134,6 +176,60 @@ function spawnEnemy() {
             speed: gameConfig.enemySpeed
         });
         gameState.lastEnemySpawn = now;
+    }
+}
+
+function spawnPowerup() {
+    const now = Date.now();
+    if (now - gameState.lastPowerupSpawn > gameConfig.powerupSpawnInterval) {
+        const type = gameConfig.powerupTypes[Math.floor(Math.random() * gameConfig.powerupTypes.length)];
+        powerups.push({
+            x: Math.random() * (gameConfig.canvasWidth - gameConfig.powerupWidth),
+            y: 0,
+            width: gameConfig.powerupWidth,
+            height: gameConfig.powerupHeight,
+            speed: gameConfig.powerupSpeed,
+            type: type
+        });
+        gameState.lastPowerupSpawn = now;
+    }
+}
+
+function updatePowerups() {
+    for (let i = powerups.length - 1; i >= 0; i--) {
+        powerups[i].y += powerups[i].speed;
+        
+        if (powerups[i].y > gameConfig.canvasHeight) {
+            powerups.splice(i, 1);
+        }
+    }
+}
+
+function applyPowerup(powerup) {
+    const now = Date.now();
+    switch (powerup.type) {
+        case 'health':
+            gameState.lives = Math.min(gameState.lives + 1, 5);
+            updateLives();
+            break;
+        case 'firepower':
+            gameState.hasFirepower = true;
+            gameState.firepowerEndTime = now + gameConfig.powerupDuration;
+            break;
+        case 'shield':
+            gameState.hasShield = true;
+            gameState.shieldEndTime = now + gameConfig.powerupDuration;
+            break;
+    }
+}
+
+function checkPowerupExpiry() {
+    const now = Date.now();
+    if (gameState.hasShield && now > gameState.shieldEndTime) {
+        gameState.hasShield = false;
+    }
+    if (gameState.hasFirepower && now > gameState.firepowerEndTime) {
+        gameState.hasFirepower = false;
     }
 }
 
@@ -195,10 +291,22 @@ function checkCollisions() {
     for (let i = enemies.length - 1; i >= 0; i--) {
         if (isColliding(player, enemies[i])) {
             enemies.splice(i, 1);
-            gameState.lives--;
-            updateLives();
-            checkGameOver();
+            if (gameState.hasShield) {
+                gameState.hasShield = false;
+            } else {
+                gameState.lives--;
+                updateLives();
+                checkGameOver();
+            }
             break;
+        }
+    }
+    
+    // 玩家与道具碰撞
+    for (let i = powerups.length - 1; i >= 0; i--) {
+        if (isColliding(player, powerups[i])) {
+            applyPowerup(powerups[i]);
+            powerups.splice(i, 1);
         }
     }
 }
@@ -417,6 +525,97 @@ function drawEnemies() {
     });
 }
 
+function drawPowerups() {
+    powerups.forEach(powerup => {
+        const centerX = powerup.x + powerup.width / 2;
+        const centerY = powerup.y + powerup.height / 2;
+        const radius = powerup.width / 2;
+        
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        
+        switch (powerup.type) {
+            case 'health':
+                ctx.fillStyle = '#4CAF50';
+                ctx.fill();
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('+', centerX, centerY);
+                break;
+            case 'firepower':
+                ctx.fillStyle = '#FF9800';
+                ctx.fill();
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('F', centerX, centerY);
+                break;
+            case 'shield':
+                ctx.fillStyle = '#2196F3';
+                ctx.fill();
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('S', centerX, centerY);
+                break;
+        }
+        
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius - 2, 0, Math.PI * 2);
+        ctx.stroke();
+    });
+}
+
+function drawPowerupEffects() {
+    if (gameState.hasShield) {
+        const centerX = player.x + player.width / 2;
+        const centerY = player.y + player.height / 2;
+        const radius = Math.max(player.width, player.height) / 2 + 10;
+        
+        ctx.strokeStyle = 'rgba(33, 150, 243, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.strokeStyle = 'rgba(33, 150, 243, 0.4)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius + 3, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    
+    if (gameState.hasFirepower) {
+        ctx.fillStyle = 'rgba(255, 152, 0, 0.9)';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('火力增强', 10, 50);
+        
+        const remaining = Math.ceil((gameState.firepowerEndTime - Date.now()) / 1000);
+        ctx.fillStyle = 'rgba(255, 152, 0, 0.7)';
+        ctx.fillText(`${remaining.toFixed(1)}s`, 10, 65);
+    }
+    
+    if (gameState.hasShield) {
+        ctx.fillStyle = 'rgba(33, 150, 243, 0.9)';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('护盾', 10, 85);
+        
+        const remaining = Math.ceil((gameState.shieldEndTime - Date.now()) / 1000);
+        ctx.fillStyle = 'rgba(33, 150, 243, 0.7)';
+        ctx.fillText(`${remaining.toFixed(1)}s`, 10, 100);
+    }
+}
+
 function drawBackground() {
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, gameConfig.canvasWidth, gameConfig.canvasHeight);
@@ -431,14 +630,19 @@ function gameLoop() {
     updatePlayer();
     updateBullets();
     updateEnemies();
+    updatePowerups();
     spawnEnemy();
+    spawnPowerup();
     checkCollisions();
+    checkPowerupExpiry();
     
     // 绘制游戏画面
     drawBackground();
     drawPlayer();
     drawBullets();
     drawEnemies();
+    drawPowerups();
+    drawPowerupEffects();
     
     // 继续游戏循环
     requestAnimationFrame(gameLoop);
